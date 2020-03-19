@@ -20,6 +20,7 @@ struct TEENSY_DATA{ //put your variable definitions here for the data you want t
   byte mode;
   double myLon;
   double myLat;
+  double course;
 };
 ESP_DATA espData;
 TEENSY_DATA tnsyData;
@@ -61,37 +62,35 @@ char const * getMode(byte modeVal) {
 void handle_OnConnect() {
   Serial.println("Incoming Default Page Client.");
   char value[12]="";
-  char htmlIndexAll[1000]; // create one big string (watch the page size!)
-  strcpy_P(htmlIndexAll, PAGE_DefaultTop); // pull the header into the big string
-  strcat(htmlIndexAll,"<label>Lat: </label><input type='text' name='lat' value='"); // pull in 1st Field
+  char htmlIndexAll[1100]; // create one big string (watch the page size!)
+  strcpy_P(htmlIndexAll, PAGE_DefaultTop); // pull the static 1st part into the big string
   dtostrf(espData.destLat,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "'><br /><label>Lon: </label><input type='text' name='lon' value='"); // Close the first field, start next.
+  strcat(htmlIndexAll, "'><br /><label>Lon: </label><input type='text' id='lon' name='lon' value='"); // Close the first field, start next.
   dtostrf(espData.destLon,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "'><br /><input type='submit' value='submit'></form><br /><label>Mode:</label>");
+  strcat(htmlIndexAll, "'><br /><input type='submit' value='Update'> <input type='button' value='Copy My Location' onclick='copyLoc(this.form)'></form><br /><label>Mode:</label>");
   strcat(htmlIndexAll, getMode(tnsyData.mode));
   strcat(htmlIndexAll, "<br /><label>Battery: </label>");
   dtostrf(tnsyData.battPct,3,2,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "<br /><label>My Lat: </label>");
+  strcat(htmlIndexAll, "<br /><label>My Lat: </label><input id='mylat' readonly='readonly' value='");
   dtostrf(tnsyData.myLat,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "<br /><label>My Lon: </label>");
+  strcat(htmlIndexAll, "'></input><br /><label>My Lon: </label><input id='mylon' readonly='readonly' value='");
   dtostrf(tnsyData.myLon,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
   courseTo = gps.courseTo(tnsyData.myLat,tnsyData.myLon,espData.destLat,espData.destLon);
   distance = gps.distanceBetween(tnsyData.myLat,tnsyData.myLon,espData.destLat,espData.destLon) / 1000.0;
-  strcat(htmlIndexAll, "<br /><label>Distance: </label>");
+  strcat(htmlIndexAll, "'></input><br /><label>Distance: </label>");
   dtostrf(distance,6,2,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll," KM<br/>CardinalTo: ");
+  strcat(htmlIndexAll," M<br/>Cardinal To: ");
   strcat(htmlIndexAll, gps.cardinal(courseTo));
+  strcat(htmlIndexAll," <br/>Present Course: ");
+  strcat(htmlIndexAll, gps.cardinal(course));
   strcat_P(htmlIndexAll, PAGE_DefaultBot);
   webServ.send(200, "text/html", htmlIndexAll); 
-  Serial.print("HTML Payload: ");
-  int sizeResp = sizeof(htmlIndexAll);
-  Serial.println(sizeResp);
 }
 void handle_NotFound() {
   webServ.send(404, "text/plain", "404: Not found");
@@ -136,8 +135,8 @@ void setup() {
   TSerial.begin(19200);
   ETIn.begin(details(tnsyData),&TSerial);
   ETOut.begin(details(espData),&TSerial);
-  espData.destLon = -96.541796; // Test data - close.
-  espData.destLat = 33.163971;
+  espData.destLon = 1.000000; // Test data - close.
+  espData.destLat = 1.000000;
   WiFi.hostname("TheStick");
   WiFi.begin(clSSID,clPass);
   while (WiFi.status() != WL_CONNECTED)
@@ -200,6 +199,8 @@ void loop() {
       Serial.println(tnsyData.myLat);
       Serial.print("Lon: ");
       Serial.println(tnsyData.myLon);
+      Serial.print("Course: ");
+      Serial.println(tnsyData.course);
       Serial.print("Battery: ");
       Serial.println(tnsyData.battPct);
     }
