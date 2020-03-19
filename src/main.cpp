@@ -26,22 +26,20 @@ ESP_DATA espData;
 TEENSY_DATA tnsyData;
 
 // GPS Monitor Setup
-//double distance = 0;
 TinyGPSPlus gps;
 double courseTo = 0;
 double course = 0;
 double distance = 0;
 
 // Web Server Setup
-#include "secrets.h"
-IPAddress apLocal(192,168,4,1);
+#include "secrets.h" // Passwords, SSIDs.
+IPAddress apLocal(192,168,4,1); // Values for AP mode
 IPAddress apGW(192,168,4,1);
-IPAddress apMask(255,255,255,0); // 6 hosts max or a /8
-IPAddress clLocal(10,10,31,70);
+IPAddress apMask(255,255,255,0); 
+IPAddress clLocal(10,10,31,70); // Values for wifi Client mode
 IPAddress clGW(10,10,31,1);
-IPAddress clMask(255,255,255,128); // 6 hosts max or a /8
+IPAddress clMask(255,255,255,128);
 ESP8266WebServer webServ(80);
-bool webOn = true;
 
 char const * getMode(byte modeVal) {
   switch (modeVal) { //0=setup, 1=findcache, 2=headlight walking, 3=headlight warn walking, 4= area light, 
@@ -60,7 +58,6 @@ char const * getMode(byte modeVal) {
 }
 
 void handle_OnConnect() {
-  Serial.println("Incoming Default Page Client.");
   char value[12]="";
   char htmlIndexAll[1100]; // create one big string (watch the page size!)
   strcpy_P(htmlIndexAll, PAGE_DefaultTop); // pull the static 1st part into the big string
@@ -91,15 +88,17 @@ void handle_OnConnect() {
   strcat(htmlIndexAll, gps.cardinal(course));
   strcat_P(htmlIndexAll, PAGE_DefaultBot);
   webServ.send(200, "text/html", htmlIndexAll); 
+  Serial.println("WEB-SERVED: Config page.");
 }
 void handle_NotFound() {
-  webServ.send(404, "text/plain", "404: Not found");
+  webServ.send(404, "text/plain", "404: Not found.");
+  Serial.println("WEB-SERVED: 404.");
 }
 void handle_newCoords() {
   double sentLon;
   double sentLat;
   bool argError = true;
-  String message = "";
+  char const * message = "";
   if ((webServ.hasArg("lat")) && (webServ.hasArg("lon"))) {
     // check for proper format? double, limits on range.
     sentLat = webServ.arg("lat").toDouble();
@@ -109,23 +108,27 @@ void handle_newCoords() {
     if ((sentLon != 0 ) && (sentLat != 0)) {
       argError = false;
     } else {
-      message = "Latitude or Longitude is invalid or out of range.";
+      message = "Latitude or Longitude is invalid or out of range.</p></body></html>";
     }
   } else {
-    message = "Missing Latitude or Longitude.";
+    message = "Missing Latitude or Longitude.</p></body></html>";
   }
-  if (!argError) {
+  if (argError) {
+    char htmlIndexAll[300]; // create one big string (watch the page size!)
+    strcpy_P(htmlIndexAll, PAGE_Update400); // pull the header into the big string
+    strcat(htmlIndexAll, message);
+    webServ.send(400, "text/html", htmlIndexAll); 
+    Serial.println("WEB-SERVED: Coordinate update FAIL.");
+  } else {
     // change values here.
     espData.destLat = sentLat;
     espData.destLon = sentLon;
     char htmlIndexAll[300]; // create one big string (watch the page size!)
     strcpy_P(htmlIndexAll, PAGE_UpdateOK); // pull the header into the big string
     webServ.send(200, "text/html", htmlIndexAll); 
+    Serial.println("WEB-SERVED: Coordinates updated.");
+    ETOut.sendData();
   }
-  webServ.send(200, "text/plain", message);
-}
-void handle_getCourse() {
-  webServ.send(200, "text/plain", "N");
 }
 
 void setup() {
@@ -138,67 +141,37 @@ void setup() {
   espData.destLon = 1.000000; // Test data - close.
   espData.destLat = 1.000000;
   WiFi.hostname("TheStick");
-  WiFi.begin(clSSID,clPass);
+  WiFi.begin(clSSID,clPass); // Comment this line thru serial.println to disable Wifi Client.
   while (WiFi.status() != WL_CONNECTED)
   {
     delay(500);
     Serial.print(".");
   }
   Serial.println();
-  //WiFi.softAP(apSSID, apPass);
-  //WiFi.softAPConfig(apLocal, apGW, apMask);
+//  WiFi.softAP(apSSID, apPass); // Comment these softAP lines to disable Access point.
+//  WiFi.softAPConfig(apLocal, apGW, apMask);
   delay(100);
   webServ.on("/", handle_OnConnect);
   webServ.on("/to", handle_newCoords);
-  webServ.on("/crs", handle_getCourse);
   webServ.onNotFound(handle_NotFound);
   webServ.begin();
 }
 
 void loop() {
   // First see if its time to process subs.
-   if (webOn) {
-     webServ.handleClient();
-   }
-
-   if (millis() > comCheck) {     // Time to service GPS.
-    comCheck = millis() + comInterval;
-    ETOut.sendData();
-  }
-
+   webServ.handleClient();
   // End of event servicing.
+
   while (TSerial.available() > 0) { // Teensy Data is ready.
     if (ETIn.receiveData()) {
       Serial.println("");
-      Serial.println("New Teensy Data Receieved.");
-      switch (tnsyData.mode) { //0=setup, 1=findcache, 2=headlight walking, 3=headlight warn walking, 4= area light, 
-        case 0:
-        // Setup Mode
-            Serial.println("Setup Mode");
-        break;
-        case 1:
-        // FindCache Mode
-            Serial.println("FindCache Mode");
-        break;
-        case 2:
-        // Headlight Walking Mode
-            Serial.println("Headlight Walking Mode");
-        break;
-        case 3:
-        // Headlight Warn Mode
-            Serial.println("Headlight Warn Mode");
-        break;
-        case 4:
-        // Area Light Mode
-            Serial.println("Area Light Mode");
-        break;
-        default:
-          Serial.println("Mode Select Statement error.");
-      }
-      Serial.print("Lat: ");
-      Serial.println(tnsyData.myLat);
-      Serial.print("Lon: ");
-      Serial.println(tnsyData.myLon);
+      Serial.println("DATA-RECEIVED: Teensy");
+      Serial.print("Mode: ");
+      Serial.println(getMode(tnsyData.mode));
+      Serial.print("Position: ");
+      Serial.print(tnsyData.myLat,6);
+      Serial.print(", ");
+      Serial.println(tnsyData.myLon,6);
       Serial.print("Course: ");
       Serial.println(tnsyData.course);
       Serial.print("Battery: ");

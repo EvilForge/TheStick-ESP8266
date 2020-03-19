@@ -17,3 +17,8 @@ const char PAGE_UpdateOK[] PROGMEM = R"=====(
 <!DOCTYPE html><html><head><title>The Stick</title><meta http-equiv="REFRESH" content="5;url=/"><style>body { background-color: black;color: white;font-family: Arial, Helvetica, sans-serif; }</style></head>
 <body><p>Updates Accepted!</body></html>
 )=====";
+
+const char PAGE_Update400[] PROGMEM = R"=====(
+<!DOCTYPE html><html><head><title>The Stick</title><meta http-equiv="REFRESH" content="5;url=/"><style>body { background-color: black;color: white;font-family: Arial, Helvetica, sans-serif; }</style></head>
+<body><p>
+)=====";
