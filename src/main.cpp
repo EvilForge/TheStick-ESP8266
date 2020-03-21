@@ -59,34 +59,34 @@ char const * getMode(byte modeVal) {
 
 void handle_OnConnect() {
   char value[12]="";
-  char htmlIndexAll[1100]; // create one big string (watch the page size!)
+  char htmlIndexAll[1600]; // create one big string (watch the page size!)
   strcpy_P(htmlIndexAll, PAGE_DefaultTop); // pull the static 1st part into the big string
   dtostrf(espData.destLat,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "'><br /><label>Lon: </label><input type='text' id='lon' name='lon' value='"); // Close the first field, start next.
+  strcat(htmlIndexAll, "'><br><label for='lon'>Longitude</label><input type='text' id='lon' name='lon' value='"); // Close the first field, start next.
   dtostrf(espData.destLon,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "'><br /><input type='submit' value='Update'> <input type='button' value='Copy My Location' onclick='copyLoc(this.form)'></form><br /><label>Mode:</label>");
+  strcat(htmlIndexAll, "'><br><input type='submit' value='Update'><input type='button' value='Copy' onclick='copyLoc(this.form)'></fieldset></form></div><h2>Status</h2><div><fieldset><label>Mode</label><label>");
   strcat(htmlIndexAll, getMode(tnsyData.mode));
-  strcat(htmlIndexAll, "<br /><label>Battery: </label>");
+  strcat(htmlIndexAll, "</label><br><label>Battery</label><label>");
   dtostrf(tnsyData.battPct,3,2,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "<br /><label>My Lat: </label><input id='mylat' readonly='readonly' value='");
+  strcat(htmlIndexAll, " V</label><br><label>My Lat</label><input id='mylat' readonly value='");
   dtostrf(tnsyData.myLat,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "'></input><br /><label>My Lon: </label><input id='mylon' readonly='readonly' value='");
+  strcat(htmlIndexAll, "'><br><label>My Lon</label><input id='mylon' readonly value='");
   dtostrf(tnsyData.myLon,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
   courseTo = gps.courseTo(tnsyData.myLat,tnsyData.myLon,espData.destLat,espData.destLon);
   distance = gps.distanceBetween(tnsyData.myLat,tnsyData.myLon,espData.destLat,espData.destLon) / 1000.0;
-  strcat(htmlIndexAll, "'></input><br /><label>Distance: </label>");
+  strcat(htmlIndexAll, "'><br><label>Distance</label><label>");
   dtostrf(distance,6,2,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll," M<br/>Cardinal To: ");
+  strcat(htmlIndexAll," m</label><br><label>Cardinal To</label><label>");
   strcat(htmlIndexAll, gps.cardinal(courseTo));
-  strcat(htmlIndexAll," <br/>Present Course: ");
+  strcat(htmlIndexAll,"</label><br><label>Course</label><label>");
   strcat(htmlIndexAll, gps.cardinal(course));
-  strcat_P(htmlIndexAll, PAGE_DefaultBot);
+  strcat(htmlIndexAll, "</label></fieldset></div></body></html>");
   webServ.send(200, "text/html", htmlIndexAll); 
   Serial.println("WEB-SERVED: Config page.");
 }
