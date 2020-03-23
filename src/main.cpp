@@ -66,7 +66,7 @@ void handle_OnConnect() {
   strcat(htmlIndexAll, "'><br><label for='lon'>Longitude</label><input type='text' id='lon' name='lon' value='"); // Close the first field, start next.
   dtostrf(espData.destLon,4,6,value);
   strcat(htmlIndexAll, value); // pull the value into the big string
-  strcat(htmlIndexAll, "'><br><input type='submit' value='Update'><input type='button' value='Copy' onclick='copyLoc(this.form)'></fieldset></form></div><h2>Status</h2><div><fieldset><label>Mode</label><label>");
+  strcpy_P(htmlIndexAll, PAGE_DefaultMid);
   strcat(htmlIndexAll, getMode(tnsyData.mode));
   strcat(htmlIndexAll, "</label><br><label>Battery</label><label>");
   dtostrf(tnsyData.battPct,3,2,value);
